@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>superFinn</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="connect">
+    <h1>superFinn</h1>
+    <p class="hint">这只是一个壳。填入 superFinn 工作台的配对链接（<code>superfinn pwa-url</code> 打印的那条），窗口会直接打开它。</p>
+    <form id="form">
+      <input id="url" type="url" placeholder="http://127.0.0.1:7777/pair?token=…" required autofocus />
+      <button type="submit">连接</button>
+    </form>
+    <p class="note" id="note"></p>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

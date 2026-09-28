@@ -1,0 +1,44 @@
+# 打 tag（v*）或手动触发时，在 GitHub 托管 runner 上构建 Windows 与 macOS 安装包，挂到草稿 Release。
+# 公共仓库的标准 runner 不计分钟；未签名：macOS 首次打开需 `xattr -d com.apple.quarantine`，Windows 会弹 SmartScreen。
+name: release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: --target aarch64-apple-darwin
+          - platform: macos-13
+            args: --target x86_64-apple-darwin
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('manual-{0}', github.run_number) }}
+          releaseName: 'superFinn ${{ github.ref_type == 'tag' && github.ref_name || format('manual-{0}', github.run_number) }}'
+          releaseDraft: true
+          prerelease: true
+          args: ${{ matrix.args }}
