@@ -1,10 +1,23 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "壳内页面（连接页、伴侣窗的连接中页面）：全部壳命令，包括把配对 token 存进系统钥匙串",
+  "windows": ["main", "companion"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "allow-token-save",
+    "allow-token-clear",
+    "allow-token-present",
+    "allow-probe",
+    "allow-pair-open",
+    "allow-remember-home",
+    "allow-go-home",
+    "allow-open-main",
+    "allow-shell-state",
+    "allow-window-drag",
+    "allow-window-fold",
+    "allow-window-pin",
+    "allow-window-hide"
   ]
 }

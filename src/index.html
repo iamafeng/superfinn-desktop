@@ -3,18 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
   <title>superFinn</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="connect">
-    <h1>superFinn</h1>
-    <p class="hint">这只是一个壳。填入 superFinn 工作台的配对链接（<code>superfinn pwa-url</code> 打印的那条），窗口会直接打开它。</p>
-    <form id="form">
-      <input id="url" type="url" placeholder="http://127.0.0.1:7777/pair?token=…" required autofocus />
-      <button type="submit">连接</button>
+  <main class="shell connect" data-view="form">
+    <header class="st" role="status" aria-live="polite">
+      <span class="lamp" data-on="down" aria-hidden="true"></span>
+      <span class="st-text" id="st">还没连上</span>
+      <span class="st-tag num">桌面壳</span>
+    </header>
+
+    <section class="ticket" data-show="busy">
+      <p class="big" id="busy-t">正在连 superFinn…</p>
+      <p class="dim num" id="busy-d"></p>
+    </section>
+
+    <section class="ticket" data-show="down">
+      <p class="big">没连上 superFinn</p>
+      <p class="dim">它可能没在运行，或者换了地址。<span class="num" id="down-base"></span></p>
+      <p class="row"><button type="button" class="go" id="retry">重试</button><button type="button" class="quiet" id="edit">改连接设置</button></p>
+      <p class="dim num" id="down-next"></p>
+    </section>
+
+    <form class="ticket" id="form" data-show="form" autocomplete="off">
+      <header class="t-head"><span class="tag">连接</span><span class="ttl">这只是一个壳，页面都在 superFinn 那边</span></header>
+      <label class="f"><span class="k">地址</span><input id="base" type="url" inputmode="url" placeholder="http://127.0.0.1:7777" spellcheck="false" /></label>
+      <label class="f"><span class="k">配对 token</span><input id="token" type="password" placeholder="superfinn pwa-url 链接里 token= 后面那串" spellcheck="false" /></label>
+      <label class="f paste"><span class="k">或者整段粘贴</span><textarea id="paste" rows="3" spellcheck="false" placeholder="在电脑上运行 superfinn pwa-url，把输出整段贴到这里，地址和 token 会自动填上"></textarea></label>
+      <fieldset class="f opt">
+        <legend class="k">形象</legend>
+        <label><input type="radio" name="avatar" value="symbol" checked /> 状态符号（缺省）</label>
+        <label class="off"><input type="radio" name="avatar" value="2d" disabled /> 2D 形象（还没接入，先留位）</label>
+      </fieldset>
+      <p class="row"><button type="submit" class="go">连接</button><button type="button" class="quiet" id="forget">忘掉 token</button></p>
+      <p class="dim note" id="note"></p>
+      <p class="dim fine">token 只存进系统钥匙串（Windows 凭据管理器 / macOS 钥匙串），壳里不留别的副本；地址记在本机。</p>
     </form>
-    <p class="note" id="note"></p>
   </main>
   <script type="module" src="main.js"></script>
 </body>

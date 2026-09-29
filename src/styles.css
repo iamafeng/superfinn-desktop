@@ -1,12 +1,68 @@
-:root { color-scheme: light dark; --fg: #1a1a1a; --bg: #f7f7f5; --muted: #6b6b6b; --accent: #2f6df6; }
-@media (prefers-color-scheme: dark) { :root { --fg: #ececec; --bg: #161616; --muted: #9a9a9a; } }
-* { box-sizing: border-box; }
-body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--fg); background: var(--bg); }
-.connect { max-width: 520px; margin: 18vh auto 0; padding: 0 24px; }
-h1 { font-size: 28px; margin: 0 0 8px; }
-.hint { color: var(--muted); margin: 0 0 20px; }
-form { display: flex; gap: 8px; }
-input { flex: 1; padding: 10px 12px; border: 1px solid #8884; border-radius: 8px; background: transparent; color: inherit; font: inherit; }
-button { padding: 10px 16px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; cursor: pointer; }
-.note { color: var(--muted); font-size: 13px; min-height: 1.5em; }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+/* 壳内页面样式：与 superFinn PWA 同一套「终端票据」味道——米纸 / 墨 / 一个琥珀强调色，全等宽，细实线，直角，无渐变无阴影。
+ * 颜色只在这里的 token 里出现；下面的规则只写 var(--*)。 */
+:root{
+  color-scheme:light;
+  --bg:#f2ebdd; --bg-2:#e8dfcc; --ink:#1c1814; --ink-2:#5a5044; --ink-3:#8a7e6c; --rule:#c7baa2;
+  --accent:#a85f00; --accent-ink:#fff8ea;
+  --font:"Liberation Mono","Noto Sans Mono CJK SC","Cascadia Mono",Menlo,Consolas,ui-monospace,monospace;
+  --fs-1:12px; --fs-2:14px; --fs-3:16px; --fs-4:20px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px;
+  --rule-w:1px; --lamp:10px; --bar-h:30px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ color-scheme:dark; --bg:#16130f; --bg-2:#1f1b15; --ink:#efe5d0; --ink-2:#b3a78f; --ink-3:#7c705e; --rule:#3b3429; --accent:#ffb000; --accent-ink:#16130f; }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{height:100%;background:var(--bg);color:var(--ink)}
+body{font:var(--fs-2)/1.55 var(--font);-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit;accent-color:var(--accent)}
+.num{font-variant-numeric:tabular-nums}
+.dim{color:var(--ink-3)}
+.big{font-size:var(--fs-3);color:var(--accent);letter-spacing:.04em}
+.row{display:flex;gap:var(--sp-2);flex-wrap:wrap}
+
+/* 只显示当前视图 */
+.shell [data-show]{display:none}
+.shell[data-view="form"] [data-show="form"],
+.shell[data-view="busy"] [data-show="busy"],
+.shell[data-view="down"] [data-show="down"],
+.shell[data-view="unset"] [data-show="unset"]{display:flex}
+
+/* 状态行 */
+.st{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) var(--sp-4);background:var(--bg-2);border-bottom:var(--rule-w) solid var(--ink);font-size:var(--fs-4);letter-spacing:.04em}
+.st-text{flex:1;min-width:0;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-tag{font-size:var(--fs-1);color:var(--ink-3);letter-spacing:.1em}
+.lamp{flex:none;width:var(--lamp);height:var(--lamp);border:var(--rule-w) solid var(--accent);background:transparent}
+.lamp[data-on="busy"],.lamp[data-on="need"]{background:var(--accent)}
+.lamp[data-on="down"]{border-style:dashed}
+
+/* 连接页：一张票据 */
+.connect{max-width:640px;margin:0 auto;min-height:100%;border-left:var(--rule-w) solid var(--rule);border-right:var(--rule-w) solid var(--rule)}
+.ticket{flex-direction:column;gap:var(--sp-3);margin:var(--sp-5) var(--sp-4);padding:var(--sp-4);border:var(--rule-w) solid var(--rule);background:var(--bg-2);border-left:var(--sp-1) solid var(--accent)}
+.t-head{display:flex;gap:var(--sp-3);align-items:baseline;border-bottom:var(--rule-w) dashed var(--ink-3);padding-bottom:var(--sp-2)}
+.tag{font-size:var(--fs-1);background:var(--accent);color:var(--accent-ink);padding:0 var(--sp-1);letter-spacing:.1em}
+.ttl{font-size:var(--fs-2);color:var(--ink-2)}
+.f{display:flex;flex-direction:column;gap:var(--sp-1);border:0}
+.k{font-size:var(--fs-1);color:var(--ink-3);letter-spacing:.1em}
+input[type=url],input[type=password],textarea{width:100%;padding:var(--sp-2);border:var(--rule-w) solid var(--rule);background:var(--bg);border-radius:0;outline:0}
+input:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;font-size:var(--fs-1)}
+.opt label{display:flex;gap:var(--sp-2);align-items:center}
+.opt .off{color:var(--ink-3)}
+.note{min-height:1.5em}
+.fine{font-size:var(--fs-1)}
+button.go,button.quiet{padding:var(--sp-1) var(--sp-4);border:var(--rule-w) solid var(--accent);border-radius:0;cursor:pointer}
+button.go{background:var(--accent);color:var(--accent-ink)}
+button.quiet{background:transparent;color:var(--ink-2);border-color:var(--rule)}
+button.go:active,button.quiet:active{background:var(--ink);color:var(--bg)}
+
+/* 伴侣窗连接中页：拖动条 + 一块 */
+.companion{height:100%;display:flex;flex-direction:column}
+.bar{flex:none;height:var(--bar-h);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-1) 0 var(--sp-2);background:var(--bg-2);border-bottom:var(--rule-w) solid var(--rule);font-size:var(--fs-1);color:var(--ink-2);letter-spacing:.06em;cursor:grab;user-select:none;-webkit-user-select:none}
+.bar .lamp{width:8px;height:8px}
+.grip{color:var(--ink-3)}
+.bar-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ico{flex:none;height:22px;min-width:24px;border:var(--rule-w) solid transparent;background:transparent;cursor:pointer;border-radius:0}
+.ico:hover{border-color:var(--rule)}
+.pane{flex:1;flex-direction:column;justify-content:center;align-items:center;gap:var(--sp-3);padding:var(--sp-4);text-align:center}

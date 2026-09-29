@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>superFinn</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="mini">
+  <!-- 伴侣窗连上之前的样子：一条拖动条 + 一句话。连上后整页换成服务端 PWA 的 /?view=mini。 -->
+  <main class="shell companion" data-view="busy">
+    <header class="bar" data-drag>
+      <span class="grip" aria-hidden="true" data-drag>≡</span>
+      <span class="lamp" data-on="down" aria-hidden="true"></span>
+      <span class="bar-t" id="st" data-drag>superFinn · 连接中</span>
+      <button type="button" class="ico" id="hide" title="收进托盘" aria-label="收进托盘">×</button>
+    </header>
+    <section class="pane" data-show="busy"><p class="big" id="busy-t">正在连 superFinn…</p></section>
+    <section class="pane" data-show="down">
+      <p class="big">没连上 superFinn</p>
+      <p class="dim" id="down-d">它可能没在运行，或者换了地址。</p>
+      <p class="row"><button type="button" class="go" id="retry">重试</button></p>
+      <p class="dim num" id="down-next"></p>
+    </section>
+    <section class="pane" data-show="unset">
+      <p class="big">还没连上</p>
+      <p class="dim">先在主窗口填好地址和配对 token。</p>
+      <p class="row"><button type="button" class="go" id="open-main">打开主窗口</button></p>
+    </section>
+  </main>
+  <script type="module" src="companion.js"></script>
+</body>
+</html>

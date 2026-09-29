@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "pwa-remote",
+  "description": "本机回环地址上的 superFinn PWA 页面：只给拖动 / 折叠 / 置顶 / 隐藏 / 托盘状态 / 回壳内页，没有任何 token 相关命令",
+  "windows": ["main", "companion"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*", "http://localhost:*"]
+  },
+  "permissions": [
+    "allow-go-home",
+    "allow-shell-state",
+    "allow-window-drag",
+    "allow-window-fold",
+    "allow-window-pin",
+    "allow-window-hide"
+  ]
+}
