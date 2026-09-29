@@ -25,3 +25,13 @@ dist-ssr
 node_modules
 dist
 .DS_Store
+
+# Local config and secrets (never commit)
+.env
+.env.*
+*.local.yaml
+*.local.yml
+secrets.yaml
+.superfinn/
+*.pid
+*.sock

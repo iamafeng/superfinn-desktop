@@ -18,6 +18,8 @@ GitHub Actions builds Windows and macOS (Apple silicon and Intel) installers on 
 
 This repository is public. It must never contain internal hostnames, IP addresses, tokens, pairing links, or anything that describes the private superFinn server. The shell only knows the URL you type into it at runtime, stored in the webview's local storage.
 
+Before pushing, enable the scan hook once with `git config core.hooksPath .githooks`; it runs `bash scripts/secret-scan.sh --all` on every `git push` and blocks the push on any hit (use `--staged` before a commit).
+
 ## License
 
 MIT
