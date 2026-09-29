@@ -38,7 +38,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('manual-{0}', github.run_number) }}
-          releaseName: 'superFinn ${{ github.ref_type == 'tag' && github.ref_name || format('manual-{0}', github.run_number) }}'
+          releaseName: "superFinn ${{ github.ref_type == 'tag' && github.ref_name || format('manual-{0}', github.run_number) }}"
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.args }}
