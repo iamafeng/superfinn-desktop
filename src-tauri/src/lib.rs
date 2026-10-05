@@ -2,8 +2,9 @@
 // 页面、消息流、审批都在 superFinn 服务那边；壳只知道用户在运行时填的地址。
 //
 // 窗口：
-//   main       主窗口。先开壳内的连接页（index.html），连上后整页换成服务端 PWA。
-//   companion  伴侣窗。无边框、置顶、不进任务栏的小窗；壳内页（companion.html）连上后换成 PWA 的 /?view=mini。
+//   main       主窗口。先开壳内的连接页（index.html），连上后整页换成服务端 PWA。S4 T23 起缺省不显示：只在首次没配对时先出来给人填 token，
+//              连上后自动收起；之后从伴侣窗「打开主窗口」或托盘菜单打开。
+//   companion  伴侣窗。无边框、置顶、不进任务栏的小窗；壳内页（companion.html）连上后换成 PWA 的 /?view=mini。缺省只起它。
 // 两个窗口都注入 src/inject/pwa-shell.js：只在服务端 PWA 页面上生效（拖动条、折叠、离线提示、托盘状态、拖放文件）。
 //
 // 权限：build.rs 声明了下面这些命令；capabilities/default.json 给壳内页面，capabilities/remote.json 只给本机回环地址上的
@@ -41,6 +42,8 @@ struct Shell {
     unfolded: Mutex<Option<PhysicalSize<u32>>>,
     /// 伴侣窗最后的位置（退出时写盘，下次启动恢复）
     companion_pos: Mutex<Option<PhysicalPosition<i32>>>,
+    /// S4 T23：首次启动没有配对 token 时主窗口先出来给人填；连上后由 PWA 页面报 main_connected，主窗口自动收起（只这一次）
+    autohide_main: Mutex<bool>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -162,6 +165,21 @@ fn open_main(app: AppHandle, stay: bool) -> Result<(), String> {
         navigate_home(&w, app.state::<Shell>().inner(), true)?;
     }
     reveal(&w);
+    Ok(())
+}
+
+/// S4 T23：主窗口里的 PWA 页面连上了（注入脚本在服务端页面找到 .one-app 时报一次）。
+/// 只在「首次启动因为没配对才打开主窗口」的那一次把主窗口收起；平时从托盘打开的主窗口不动。
+#[tauri::command]
+fn main_connected(window: WebviewWindow, shell: tauri::State<'_, Shell>) -> Result<(), String> {
+    if window.label() != "main" {
+        return Ok(());
+    }
+    let mut flag = lock(&shell.autohide_main);
+    if *flag {
+        *flag = false;
+        let _ = window.hide();
+    }
     Ok(())
 }
 
@@ -326,14 +344,20 @@ pub fn run() {
             window_drag,
             window_fold,
             window_pin,
-            window_hide
+            window_hide,
+            main_connected
         ])
         .setup(|app| {
+            // S4 T23（T16 第 7 条真机打回 7）：缺省只起伴侣窗，主窗口按需（伴侣窗里「打开主窗口」/ 托盘菜单）。
+            // 首次启动钥匙串里没有配对 token 时例外：主窗口先出来给人填地址与 token，连上后自动收起（main_connected）。
+            let first_run = !token_present();
+            *lock(&app.state::<Shell>().autohide_main) = first_run;
             let main = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title("superFinn")
                 .inner_size(1280.0, 820.0)
                 .min_inner_size(960.0, 600.0)
                 .center()
+                .visible(first_run)
                 .initialization_script(&inject_for("main"))
                 .build()?;
             let companion = WebviewWindowBuilder::new(app, "companion", WebviewUrl::App("companion.html".into()))
@@ -369,7 +393,7 @@ pub fn run() {
                 app,
                 &[
                     &MenuItem::with_id(app, "companion", "显示 / 隐藏伴侣窗", true, None::<&str>)?,
-                    &MenuItem::with_id(app, "main", "打开主窗口", true, None::<&str>)?,
+                    &MenuItem::with_id(app, "main", "打开主窗口（完整页面）", true, None::<&str>)?,
                     &MenuItem::with_id(app, "settings", "连接设置…", true, None::<&str>)?,
                     &PredefinedMenuItem::separator(app)?,
                     &MenuItem::with_id(app, "quit", "退出 superFinn", true, None::<&str>)?,
@@ -378,7 +402,7 @@ pub fn run() {
             if let Some(tray) = app.tray_by_id(TRAY_ID) {
                 tray.set_menu(Some(menu))?;
                 tray.set_icon(Some(lamp_icon(Lamp::Down)))?;
-                tray.set_tooltip(Some("superFinn · 连接中"))?;
+                tray.set_tooltip(Some("superFinn · 连接中（左键菜单：显示伴侣窗 / 打开主窗口 / 退出）"))?;
             }
             Ok(())
         })
@@ -396,7 +420,7 @@ pub fn run() {
             _ => {}
         })
         .on_window_event(|window, event| match event {
-            // 关窗 = 收进托盘；退出走托盘菜单
+            // 关窗 = 收进托盘；退出走托盘菜单（伴侣窗拖动条上的 ▣ 也是收进托盘，首次会提示「我在托盘里，点小灯回来」）
             WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();

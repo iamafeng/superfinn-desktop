@@ -16,6 +16,7 @@ fn main() {
             "window_fold",
             "window_pin",
             "window_hide",
+            "main_connected",
         ]),
     ))
     .expect("failed to run tauri-build");

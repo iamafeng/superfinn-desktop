@@ -1,5 +1,6 @@
-# 打 tag（v*）或手动触发时，在 GitHub 托管 runner 上构建 Windows 与 macOS 安装包，挂到草稿 Release。
+# 打 tag（v*）或手动触发时，在 GitHub 托管 runner 上构建 Windows 与 macOS（Apple 芯片）安装包，挂到草稿 Release。
 # 公共仓库的标准 runner 不计分钟；未签名：macOS 首次打开需 `xattr -d com.apple.quarantine`，Windows 会弹 SmartScreen。
+# S4 T23：去掉了 macos-13（Intel）——该 runner 已排不到机器，整个 run 一直 queued；Intel Mac 暂不出包（README 有说明）。
 name: release
 on:
   push:
@@ -15,8 +16,6 @@ jobs:
         include:
           - platform: macos-latest
             args: --target aarch64-apple-darwin
-          - platform: macos-13
-            args: --target x86_64-apple-darwin
           - platform: windows-latest
             args: ''
     runs-on: ${{ matrix.platform }}
@@ -28,7 +27,7 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri

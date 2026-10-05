@@ -2,7 +2,8 @@
  * 前面带一行 window.__SF_SHELL_WIN__ = "main" | "companion"。
  *
  * 只在服务端 PWA 页面上生效（壳内页面、其它协议一律不碰），做五件事：
- *   1. 伴侣窗：/pair 跳回的 / 换成 /?view=mini；顶上加一条拖动条（拖动 / 置顶 / 折叠成一行 / 收进托盘）。
+ *   1. 伴侣窗：/pair 跳回的 / 换成 /?view=mini；顶上加一条拖动条（拖动 / 置顶 / 折叠成一行 / ▣ 收进托盘——首次收起提示「我在托盘里，点小灯回来」）。
+ *      S4 T23：折叠行在审批最后 60 秒带上 PWA 的「还剩 N 秒」；主窗口里 PWA 连上后报一次 main_connected（首次配对后主窗口自动收起）。
  *   2. 托盘三态：读 PWA 自己画出来的状态（.one-app[data-link]、.lamp[data-on]、「需要你」行）→ shell_state（idle / busy / need / down）。
  *   3. 离线：连接断开超过 3 秒 → 盖一层「没连上 superFinn」+「重试」（回壳内页面重新探测、重新配对）。
  *   4. 配对失效（服务端回「未配对」「配对失败」）→ 提示并给出回连接设置的按钮。
@@ -16,6 +17,8 @@
   var DOWN_GRACE_MS = 3000;    // 断线多久才盖离线层（PWA 自己会先重连几次）
   var MAX_DROP = 3;            // 一次最多拖几个文件
   var WORDS = { idle: '空闲', busy: '在做', need: '等你', down: '没连上 superFinn' };
+  var HIDE_TITLE = '收进托盘（托盘右键可退出）';
+  var HIDE_HINT = '我在托盘里，点小灯回来';
   var SHORT = { idle: '空闲', busy: '在做', need: '等你', down: '没连上' };   // 拖动条上用短的
 
   /** 纯函数：页面上看得到的状态 → 托盘状态。link = .one-app[data-link]，lamp = .lamp[data-on]，need = 「需要你」行在不在 */
@@ -44,15 +47,16 @@
     var n = (names || []).filter(Boolean);
     return n.length ? '看看这个：' + n.join('、') : '看看这个';
   }
-  /** 纯函数：折叠后状态行上的那句（「需要你几件」放最前面，窄窗截断时也看得到） */
-  function foldedLine(stText, needYou, state) {
-    var t = String(stText || '').replace(/\s+/g, ' ').trim();
+  /** 纯函数：折叠后状态行上的那句（「需要你几件」放最前面，窄窗截断时也看得到）；due = PWA 的「还剩 N 秒」（S4 T23，最后 60 秒才有） */
+  function foldedLine(stText, needYou, state, due) {
+    var t = String(stText || '').replace(/\s+/g, ' ').trim(), d = String(due || '').trim();
     if (state === 'down') return WORDS.down;
     if (!t) t = WORDS[state] || '';
-    return needYou > 0 ? '需要你 ' + needYou + ' · ' + t : t;
+    var line = needYou > 0 ? '需要你 ' + needYou + ' · ' + t : t;
+    return d ? line + ' · ' + d : line;
   }
 
-  var PURE = { deriveState: deriveState, isPwaUrl: isPwaUrl, miniRedirect: miniRedirect, isUnpairedText: isUnpairedText, dropText: dropText, foldedLine: foldedLine, WORDS: WORDS, BAR_H: BAR_H };
+  var PURE = { deriveState: deriveState, isPwaUrl: isPwaUrl, miniRedirect: miniRedirect, isUnpairedText: isUnpairedText, dropText: dropText, foldedLine: foldedLine, WORDS: WORDS, BAR_H: BAR_H, HIDE_TITLE: HIDE_TITLE, HIDE_HINT: HIDE_HINT };
   root.__SF_SHELL__ = PURE;
 
   var d = root.document, loc = root.location;
@@ -134,9 +138,9 @@
   function settings() { invoke('go_home', { stay: true }).catch(function () { toast('去托盘菜单「连接设置…」改地址或 token'); }); }
 
   function read(app) {
-    var lamp = app.querySelector('.status .lamp'), st = app.querySelector('.status .st-text'), nb = app.querySelector('.needbar .tag');
+    var lamp = app.querySelector('.status .lamp'), st = app.querySelector('.status .st-text'), nb = app.querySelector('.needbar .tag'), due = app.querySelector('.status .st-due');
     var needYou = nb ? Number(String(nb.textContent).replace(/\D+/g, '')) || 1 : 0;
-    return { link: app.getAttribute('data-link'), lamp: lamp && lamp.getAttribute('data-on'), need: needYou > 0, needYou: needYou, text: st ? st.textContent : '' };
+    return { link: app.getAttribute('data-link'), lamp: lamp && lamp.getAttribute('data-on'), need: needYou > 0, needYou: needYou, text: st ? st.textContent : '', due: due ? due.textContent : '' };
   }
   function sync(app) {
     var v = read(app), now = Date.now();
@@ -155,10 +159,17 @@
     if (ui.bar) {
       ui.bar.setAttribute('data-on', shown);
       ui.lamp.setAttribute('data-on', shown);
-      ui.text.textContent = S.folded ? foldedLine(v.text, v.needYou, shown) : 'superFinn · ' + SHORT[shown];
+      ui.text.textContent = S.folded ? foldedLine(v.text, v.needYou, shown, v.due) : 'superFinn · ' + SHORT[shown] + (v.due && shown === 'need' ? ' · ' + v.due : '');
     }
   }
 
+  /** S4 T23：收进托盘。第一次先提示「我在托盘里，点小灯回来」再收（之后不再提示，记在本机偏好里） */
+  function hideToTray() {
+    if (pref('sf.shell.hideHinted') === '1') { invoke('window_hide').catch(function () {}); return; }
+    pref('sf.shell.hideHinted', '1');
+    toast(HIDE_HINT);
+    setTimeout(function () { invoke('window_hide').catch(function () {}); }, 1200);
+  }
   function fold(on) {
     S.folded = !!on;
     d.documentElement.classList.toggle('sf-folded', S.folded);
@@ -181,7 +192,7 @@
     ui.text = el('span', 'sf-text', 'superFinn'); b.appendChild(ui.text);
     ui.pin = btn('pin', '顶', '置顶'); b.appendChild(ui.pin);
     ui.fold = btn('fold', '-', '折叠成一行'); b.appendChild(ui.fold);
-    b.appendChild(btn('hide', '×', '收进托盘'));
+    b.appendChild(btn('hide', '▣', HIDE_TITLE));   // S4 T23：× 让人以为是关掉；▣ + 标题说清是收进托盘、退出在托盘菜单
     b.addEventListener('mousedown', function (e) {
       if (e.button !== 0 || (e.target.closest && e.target.closest('button'))) return;
       e.preventDefault(); invoke('window_drag').catch(function () {});
@@ -192,7 +203,7 @@
       var act = t.getAttribute('data-sf');
       if (act === 'fold') fold(!S.folded);
       else if (act === 'pin') pin(!S.pinned);
-      else if (act === 'hide') invoke('window_hide').catch(function () {});
+      else if (act === 'hide') hideToTray();
     });
     d.body.appendChild(b);
     d.documentElement.classList.add('sf-companion');
@@ -242,6 +253,7 @@
     }
     S.app = app;
     if (WIN === 'companion') { bar(app); drops(app); }
+    else invoke('main_connected').catch(function () {});   // S4 T23：主窗口连上了——首次配对那一次 Rust 会把主窗口收起（平时不动）
     var mo = new root.MutationObserver(function () { sync(app); });
     mo.observe(app, { attributes: true, attributeFilter: ['data-link'], childList: true, subtree: true, characterData: true });
     setInterval(function () { sync(app); }, 1000);   // 断线计时要走表，不只靠 DOM 变化

@@ -65,6 +65,19 @@ test('isUnpairedText / dropText / foldedLine', () => {
   assert.equal(foldedLine('等你点头', 2, 'need'), '需要你 2 · 等你点头');
   assert.equal(foldedLine('随便', 0, 'down'), '没连上 superFinn');
   assert.equal(foldedLine('', 0, 'idle'), '空闲');
+  // S4 T23：审批最后 60 秒，PWA 的「还剩 N 秒」接在折叠行后面
+  assert.equal(foldedLine('等你 1 件事', 1, 'need', '还剩 42 秒'), '需要你 1 · 等你 1 件事 · 还剩 42 秒');
+  assert.equal(foldedLine('在做', 0, 'busy', ''), '在做');
+});
+test('S4 T23：收进托盘的按钮说清自己是什么；首次提示文案', () => {
+  const S = inject();
+  assert.equal(S.HIDE_TITLE, '收进托盘（托盘右键可退出）');
+  assert.equal(S.HIDE_HINT, '我在托盘里，点小灯回来');
+  const src = readFileSync(new URL('../src/inject/pwa-shell.js', import.meta.url), 'utf8');
+  assert.ok(src.includes("btn('hide', '▣', HIDE_TITLE)"), '拖动条上的收起键是 ▣ 带说明，不是 ×');
+  assert.ok(!src.includes("btn('hide', '×'"));
+  const html = readFileSync(new URL('../src/companion.html', import.meta.url), 'utf8');
+  assert.ok(/id="hide" title="收进托盘（托盘右键可退出）"[^>]*>▣</.test(html));
 });
 
 test('权限：服务端页面拿不到任何 token 命令；两份 capability 覆盖全部已声明命令', () => {
@@ -87,4 +100,16 @@ test('配置：没有写死任何服务地址；伴侣窗在 Rust 里建（无�
   assert.ok(!/https?:\/\/(127\.0\.0\.1|localhost)/.test(conf));
   assert.ok(!/https?:\/\/(127\.0\.0\.1|localhost)/.test(lib));
   for (const s of ['"companion"', '.decorations(false)', '.always_on_top(true)', '.skip_taskbar(true)', '.disable_drag_drop_handler()', 'include_str!("../../src/inject/pwa-shell.js")']) assert.ok(lib.includes(s), s);
+});
+test('S4 T23：缺省只起伴侣窗——主窗口 visible 跟「首次没配对」走，连上后 main_connected 只收起那一次；release 不再排 macos-13', () => {
+  const lib = readFileSync(new URL('../src-tauri/src/lib.rs', import.meta.url), 'utf8');
+  assert.ok(lib.includes('let first_run = !token_present();'));
+  assert.ok(lib.includes('.visible(first_run)'));
+  assert.ok(/fn main_connected\(/.test(lib));
+  assert.ok(lib.includes('autohide_main'));
+  const inject = readFileSync(new URL('../src/inject/pwa-shell.js', import.meta.url), 'utf8');
+  assert.ok(inject.includes("invoke('main_connected')"));
+  const rel = readFileSync(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8');
+  assert.ok(!/macos-13/.test(rel.replace(/^#.*$/gm, '')), 'release matrix 里不该再有 macos-13');
+  assert.ok(/windows-latest/.test(rel) && /macos-latest/.test(rel));
 });
